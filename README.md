@@ -113,7 +113,7 @@ python app.py --refresh  # Start with data refresh
 
 ## Data Sources
 
-The dashboard pulls from three official San Antonio datasets:
+The dashboard pulls from three official San Antonio datasets available at the [San Antonio Open Data Portal](https://data.sanantonio.gov/):
 
 1. **Crime Reports** - Detailed incident reports with offense types and locations
 2. **Arrest Records** - Booking data with charges and severity classifications  

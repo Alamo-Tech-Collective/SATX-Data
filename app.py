@@ -622,4 +622,4 @@ if __name__ == '__main__':
     start_scheduler_thread()
     
     # Run the app
-    app.run(debug=True, port=5001, host='127.0.0.1')
+    app.run(debug=True, port=5001, host='0.0.0.0')

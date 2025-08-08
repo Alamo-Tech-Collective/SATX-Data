@@ -1,0 +1,900 @@
+{% extends "base.html" %}
+
+{% block title %}Public Safety Insights - SATX Data{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .insights-header {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .insights-header h1 {
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .insights-header p {
+        font-size: 1.2em;
+        opacity: 0.9;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    @media (min-width: 1200px) {
+        .metrics-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 1199px) {
+        .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.3s;
+    }
+    
+    .period-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 2px solid #f0f3f6;
+    }
+    
+    .period-item {
+        text-align: center;
+        padding: 10px 5px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+    
+    .period-item:hover {
+        background: #e9ecef;
+    }
+    
+    .period-label {
+        font-size: 0.75em;
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        line-height: 1.2;
+        min-height: 2em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .period-value {
+        font-size: 1.5em;
+        font-weight: 700;
+        margin-bottom: 5px;
+        display: block;
+        line-height: 1.1;
+    }
+    
+    .period-unit {
+        font-size: 0.75em;
+        color: #95a5a6;
+        display: block;
+        margin-top: 5px;
+        line-height: 1.2;
+    }
+    
+    .trend-indicator {
+        font-size: 0.85em;
+        margin-left: 5px;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .metric-card h4 {
+        color: #495057;
+        font-size: 0.95em;
+        font-weight: 600;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        padding-bottom: 10px;
+    }
+    
+    .metric-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .metric-label {
+        color: #95a5a6;
+        font-size: 0.85em;
+    }
+    
+    .safety-score {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .csi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .csi-item {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .csi-label {
+        font-size: 0.85em;
+        color: #7f8c8d;
+        margin-bottom: 8px;
+    }
+    
+    .csi-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .csi-trend {
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    
+    .csi-components-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .csi-component {
+        padding: 15px;
+        background: #fff;
+        border-left: 3px solid #3498db;
+    }
+    
+    @media (max-width: 768px) {
+        .safety-score {
+            padding: 20px 15px;
+        }
+        
+        .csi-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .csi-item {
+            padding: 15px;
+        }
+        
+        .csi-value {
+            font-size: 1.5em;
+        }
+        
+        .csi-components-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+    }
+    
+    .score-gauge {
+        position: relative;
+        width: 250px;
+        height: 100px;
+        margin: 0 auto 20px;
+    }
+    
+    .score-bar {
+        width: 100%;
+        height: 20px;
+        background: linear-gradient(to right, #27ae60 0%, #2ecc71 20%, #3498db 40%, #f1c40f 60%, #e67e22 80%, #e74c3c 100%);
+        border-radius: 10px;
+        position: relative;
+    }
+    
+    .score-indicator {
+        position: absolute;
+        top: -10px;
+        width: 40px;
+        height: 40px;
+        background: #2c3e50;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: left 0.5s ease;
+        margin-left: -20px; /* Center the indicator */
+    }
+    
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .insights-list {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    @media (max-width: 768px) {
+        .insights-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .insights-list {
+            padding: 20px;
+        }
+    }
+    
+    .insight-item {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .insight-item.positive {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .insight-item.warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .insight-item.alert {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .insight-item.info {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .insight-icon {
+        font-size: 1.5em;
+    }
+    
+    .chart-section {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .chart-section h3 {
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
+    
+    .trending-table {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .trend-up {
+        color: #e74c3c;
+    }
+    
+    .trend-down {
+        color: #27ae60;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="insights-header">
+        <h1>San Antonio Public Safety Insights</h1>
+        <p>Comprehensive analysis of crime and arrest data for the last 30 days</p>
+        <div class="last-update">
+            {% if last_fetch and last_fetch.fetch_date_formatted %}
+                Data current as of: {{ last_fetch.fetch_date_formatted }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h4>Total Daily Incidents</h4>
+            <div class="period-metrics">
+                <div class="period-item">
+                    <div class="period-label">30-Day Average</div>
+                    <div class="period-value" style="color: #2c3e50;">
+                        {{ "%.1f"|format(all_insights[30].total_incidents / 30) }}
+                    </div>
+                    {% if all_insights[30].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[30].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[30].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[30].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">incidents/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">60-Day Average</div>
+                    <div class="period-value" style="color: #2c3e50;">
+                        {{ "%.1f"|format(all_insights[60].total_incidents / 60) }}
+                    </div>
+                    {% if all_insights[60].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[60].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[60].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[60].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">incidents/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">90-Day Average</div>
+                    <div class="period-value" style="color: #2c3e50;">
+                        {{ "%.1f"|format(all_insights[90].total_incidents / 90) }}
+                    </div>
+                    {% if all_insights[90].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[90].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[90].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[90].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">incidents/day</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h4>Daily Crime Rate</h4>
+            <div class="period-metrics">
+                <div class="period-item">
+                    <div class="period-label">30-Day Average</div>
+                    <div class="period-value" style="color: #3498db;">
+                        {{ "%.1f"|format(all_insights[30].daily_crime_rate) }}
+                    </div>
+                    {% if all_insights[30].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[30].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[30].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[30].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">crimes/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">60-Day Average</div>
+                    <div class="period-value" style="color: #3498db;">
+                        {{ "%.1f"|format(all_insights[60].daily_crime_rate) }}
+                    </div>
+                    {% if all_insights[60].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[60].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[60].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[60].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">crimes/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">90-Day Average</div>
+                    <div class="period-value" style="color: #3498db;">
+                        {{ "%.1f"|format(all_insights[90].daily_crime_rate) }}
+                    </div>
+                    {% if all_insights[90].crime_rate_trend is defined %}
+                        <span class="trend-indicator {% if all_insights[90].crime_rate_trend > 0 %}trend-up{% else %}trend-down{% endif %}" style="font-size: 0.9em; display: block; margin: 5px 0;">
+                            {% if all_insights[90].crime_rate_trend > 0 %}↑{% else %}↓{% endif %}
+                            {{ "%.1f"|format(all_insights[90].crime_rate_trend|abs) }}%
+                        </span>
+                    {% endif %}
+                    <span class="period-unit">crimes/day</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h4>Daily Arrests</h4>
+            <div class="period-metrics">
+                <div class="period-item">
+                    <div class="period-label">30-Day Average</div>
+                    <div class="period-value" style="color: #e74c3c;">{{ "%.0f"|format(all_insights[30].daily_arrest_rate) }}</div>
+                    <span class="period-unit">arrests/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">60-Day Average</div>
+                    <div class="period-value" style="color: #e74c3c;">{{ "%.0f"|format(all_insights[60].daily_arrest_rate) }}</div>
+                    <span class="period-unit">arrests/day</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">90-Day Average</div>
+                    <div class="period-value" style="color: #e74c3c;">{{ "%.0f"|format(all_insights[90].daily_arrest_rate) }}</div>
+                    <span class="period-unit">arrests/day</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <h4>Clearance Rate</h4>
+            <div class="period-metrics">
+                <div class="period-item">
+                    <div class="period-label">30-Day Period</div>
+                    <div class="period-value" style="color: #9b59b6;">{{ "%.1f"|format(all_insights[30].arrest_rate) }}%</div>
+                    <span class="period-unit">crimes → arrests</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">60-Day Period</div>
+                    <div class="period-value" style="color: #9b59b6;">{{ "%.1f"|format(all_insights[60].arrest_rate) }}%</div>
+                    <span class="period-unit">crimes → arrests</span>
+                </div>
+                <div class="period-item">
+                    <div class="period-label">90-Day Period</div>
+                    <div class="period-value" style="color: #9b59b6;">{{ "%.1f"|format(all_insights[90].arrest_rate) }}%</div>
+                    <span class="period-unit">crimes → arrests</span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="safety-score">
+        <h3>Crime Severity Index</h3>
+        <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 25px; text-align: center;">
+            Weighted severity per 100,000 population (annualized)
+        </p>
+        
+        <div class="csi-grid">
+            <div class="csi-item">
+                <div class="csi-label">30 Days</div>
+                <div class="csi-value">
+                    {{ "{:,.0f}".format(all_insights[30].safety_components.crime_severity_index) }}
+                </div>
+                {% if all_insights[30].csi_trend is defined %}
+                <div class="csi-trend">
+                    <span class="{% if all_insights[30].csi_trend > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        {% if all_insights[30].csi_trend > 0 %}↑{% else %}↓{% endif %}
+                        {{ "%.1f"|format(all_insights[30].csi_trend|abs) }}%
+                    </span>
+                    <span style="font-size: 0.8em; color: #95a5a6;">vs 60d</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="csi-item">
+                <div class="csi-label">60 Days</div>
+                <div class="csi-value">
+                    {{ "{:,.0f}".format(all_insights[60].safety_components.crime_severity_index) }}
+                </div>
+                {% if all_insights[60].csi_trend is defined %}
+                <div class="csi-trend">
+                    <span class="{% if all_insights[60].csi_trend > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        {% if all_insights[60].csi_trend > 0 %}↑{% else %}↓{% endif %}
+                        {{ "%.1f"|format(all_insights[60].csi_trend|abs) }}%
+                    </span>
+                    <span style="font-size: 0.8em; color: #95a5a6;">vs 90d</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="csi-item">
+                <div class="csi-label">90 Days</div>
+                <div class="csi-value">
+                    {{ "{:,.0f}".format(all_insights[90].safety_components.crime_severity_index) }}
+                </div>
+                {% if all_insights[90].csi_trend is defined %}
+                <div class="csi-trend">
+                    <span class="{% if all_insights[90].csi_trend > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        {% if all_insights[90].csi_trend > 0 %}↑{% else %}↓{% endif %}
+                        {{ "%.1f"|format(all_insights[90].csi_trend|abs) }}%
+                    </span>
+                    <span style="font-size: 0.8em; color: #95a5a6;">trend</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="csi-components-grid">
+            <div class="csi-component">
+                <h4 style="margin: 0 0 10px 0; font-size: 0.95em; color: #2c3e50;">Index Components (30-Day)</h4>
+                <div style="font-size: 0.85em; color: #7f8c8d; line-height: 1.6;">
+                    <div>Violent Crime Index: <strong>{{ "{:,.0f}".format(all_insights[30].safety_components.violent_csi) }}</strong></div>
+                    <div>Property Crime Index: <strong>{{ "{:,.0f}".format(all_insights[30].safety_components.property_csi) }}</strong></div>
+                    <div>Daily Average: <strong>{{ "%.1f"|format(all_insights[30].safety_components.daily_rate) }}</strong> crimes</div>
+                </div>
+            </div>
+            
+            <div class="csi-component" style="border-left-color: #95a5a6;">
+                <h4 style="margin: 0 0 10px 0; font-size: 0.95em; color: #2c3e50;">Methodology</h4>
+                <div style="font-size: 0.85em; color: #7f8c8d; line-height: 1.6;">
+                    <div>Based on US Federal Sentencing Guidelines</div>
+                    <div>Weighted by days of imprisonment</div>
+                    <div>Per 100,000 population, annualized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if insights.key_findings %}
+    <div class="insights-grid">
+        
+        {% if insights.key_findings.improvements %}
+        <div class="insights-list">
+            <h3 style="color: #27ae60;">✓ Improvements & Positives</h3>
+            {% for finding in insights.key_findings.improvements %}
+            <div class="insight-item {{ finding.type }}">
+                <div class="insight-icon">✓</div>
+                <div>{{ finding.text }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if insights.key_findings.concerns %}
+        <div class="insights-list">
+            <h3 style="color: #e74c3c;">⚠ Areas of Concern</h3>
+            {% for finding in insights.key_findings.concerns %}
+            <div class="insight-item {{ finding.type }}">
+                <div class="insight-icon">
+                    {% if finding.type == 'alert' %}⚡{% else %}⚠{% endif %}
+                </div>
+                <div>{{ finding.text }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if insights.key_findings.overview %}
+        <div class="insights-list">
+            <h3 style="color: #3498db;">ℹ Overview Statistics</h3>
+            {% for finding in insights.key_findings.overview %}
+            <div class="insight-item {{ finding.type }}">
+                <div class="insight-icon">ℹ</div>
+                <div>{{ finding.text }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+    </div>
+    {% endif %}
+
+    <div class="charts-grid">
+        <div class="chart-section">
+            <h3>Service Area Analysis</h3>
+            <canvas id="areaChart"></canvas>
+        </div>
+        
+        <div class="chart-section">
+            <h3>30-Day Crime & Arrest Trends</h3>
+            <p style="font-size: 0.9em; color: #7f8c8d; margin: -10px 0 15px 0;">Daily incidents with 7-day moving average</p>
+            <canvas id="trendChart"></canvas>
+        </div>
+        
+        <div class="chart-section">
+            <h3>Call Volume by Hour of Day</h3>
+            <canvas id="hourlyChart"></canvas>
+        </div>
+        
+        <div class="chart-section">
+            <h3>High-Risk Zip Codes</h3>
+            <canvas id="zipChart"></canvas>
+        </div>
+    </div>
+
+    {% if insights.trending_crimes %}
+    <div class="trending-table">
+        <h3>Trending Crime Types</h3>
+        {% if insights.trending_crimes[0].previous is not none %}
+        <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 15px;">
+            Comparing last 30 days to previous 30 days
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Crime Type</th>
+                    <th>Last 30 Days</th>
+                    <th>Previous 30 Days</th>
+                    <th>Change</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for crime in insights.trending_crimes %}
+                <tr>
+                    <td>{{ crime.type }}</td>
+                    <td>{{ crime.recent }}</td>
+                    <td>{{ crime.previous if crime.previous else '-' }}</td>
+                    <td class="{% if crime.change and crime.change > 0 %}trend-up{% elif crime.change and crime.change < 0 %}trend-down{% else %}{% endif %}">
+                        {% if crime.change %}
+                            {% if crime.change > 0 %}
+                                ↑ {{ "%.0f"|format(crime.change) }}%
+                            {% elif crime.change < 0 %}
+                                ↓ {{ "%.0f"|format(crime.change|abs) }}%
+                            {% else %}
+                                —
+                            {% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 15px;">
+            Top crime types (need 60+ days of data for trend comparison)
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Crime Type</th>
+                    <th>Count (Last 30 Days)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for crime in insights.trending_crimes %}
+                <tr>
+                    <td>{{ crime.type }}</td>
+                    <td>{{ crime.recent }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+        // Service Area Chart
+        const areaCtx = document.getElementById('areaChart').getContext('2d');
+        new Chart(areaCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ area_labels | tojson }},
+                datasets: [{
+                    label: 'Crimes',
+                    data: {{ area_crimes | tojson }},
+                    backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Arrests',
+                    data: {{ area_arrests | tojson }},
+                    backgroundColor: 'rgba(231, 76, 60, 0.6)',
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Daily Trend Chart - Simplified with moving average
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const dailyLabels = {{ daily_labels_30 | tojson }};
+        const dailyCrimes = {{ daily_crimes_30 | tojson }};
+        const dailyArrests = {{ daily_arrests_30 | tojson }};
+        
+        // Calculate 7-day moving averages
+        function calculateMovingAverage(data, window = 7) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                const start = Math.max(0, i - Math.floor(window / 2));
+                const end = Math.min(data.length, i + Math.floor(window / 2) + 1);
+                const subset = data.slice(start, end);
+                const avg = subset.reduce((a, b) => a + b, 0) / subset.length;
+                result.push(Math.round(avg * 10) / 10);
+            }
+            return result;
+        }
+        
+        const crimesMA = calculateMovingAverage(dailyCrimes);
+        const arrestsMA = calculateMovingAverage(dailyArrests);
+        
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Daily Crimes',
+                    data: dailyCrimes,
+                    borderColor: 'rgba(52, 152, 219, 0.3)',
+                    backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                    borderWidth: 1,
+                    pointRadius: 2,
+                    pointHoverRadius: 4,
+                    tension: 0
+                }, {
+                    label: '7-Day Avg (Crimes)',
+                    data: crimesMA,
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    tension: 0.3
+                }, {
+                    label: 'Daily Arrests',
+                    data: dailyArrests,
+                    borderColor: 'rgba(231, 76, 60, 0.3)',
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderWidth: 1,
+                    pointRadius: 2,
+                    pointHoverRadius: 4,
+                    tension: 0
+                }, {
+                    label: '7-Day Avg (Arrests)',
+                    data: arrestsMA,
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 3,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Incidents'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            autoSkip: true,
+                            maxTicksLimit: 15
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y;
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Hourly Pattern Chart
+        const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+        new Chart(hourlyCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ hourly_labels | tojson }},
+                datasets: [{
+                    label: 'Call Volume',
+                    data: {{ hourly_data | tojson }},
+                    backgroundColor: 'rgba(155, 89, 182, 0.6)',
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Zip Code Risk Chart
+        const zipCtx = document.getElementById('zipChart').getContext('2d');
+        new Chart(zipCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ zip_labels | tojson }},
+                datasets: [{
+                    label: 'Risk Score',
+                    data: {{ zip_scores | tojson }},
+                    backgroundColor: [
+                        'rgba(231, 76, 60, 0.8)',
+                        'rgba(230, 126, 34, 0.7)',
+                        'rgba(241, 196, 15, 0.6)',
+                        'rgba(52, 152, 219, 0.5)',
+                        'rgba(155, 89, 182, 0.4)'
+                    ],
+                    borderColor: [
+                        'rgba(231, 76, 60, 1)',
+                        'rgba(230, 126, 34, 1)',
+                        'rgba(241, 196, 15, 1)',
+                        'rgba(52, 152, 219, 1)',
+                        'rgba(155, 89, 182, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+</div>
+{% endblock %}

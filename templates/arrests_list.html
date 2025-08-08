@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Arrest Records - SATX Data{% endblock %}
+
+{% block extra_head %}
+<style>
+    .filters-form {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .filters-form {
+            padding: 15px;
+        }
+        
+        .filters-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .filter-buttons {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            min-width: 600px;
+        }
+        
+        .pagination {
+            flex-wrap: wrap;
+            padding: 15px;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 6px 10px;
+            font-size: 0.9em;
+        }
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-group label {
+        font-size: 0.9em;
+        color: #555;
+        margin-bottom: 5px;
+    }
+    
+    .filter-group input,
+    .filter-group select {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 0.95em;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.95em;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #e74c3c;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #c0392b;
+    }
+    
+    .btn-secondary {
+        background-color: #95a5a6;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+    
+    .arrests-table {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table-header {
+        padding: 20px;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .table-header h2 {
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    .results-count {
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 20px;
+        justify-content: center;
+        background: #f8f9fa;
+    }
+    
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        text-decoration: none;
+        color: #e74c3c;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        transition: all 0.3s;
+    }
+    
+    .pagination a:hover {
+        background-color: #e74c3c;
+        color: white;
+    }
+    
+    .pagination .current {
+        background-color: #e74c3c;
+        color: white;
+        border-color: #e74c3c;
+    }
+    
+    .pagination .disabled {
+        color: #95a5a6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <h1>Arrest Records</h1>
+        <p class="subtitle">Browse and filter arrest reports</p>
+    </header>
+
+    <form method="get" action="/arrests" class="filters-form">
+        <h3>Filters</h3>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="days">Time Range</label>
+                <select name="days" id="days" onchange="this.form.submit()">
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                    <option value="60" {% if days == 60 %}selected{% endif %}>Last 60 Days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="offense">Offense Type</label>
+                <select name="offense" id="offense">
+                    <option value="">All Offenses</option>
+                    {% for off in filter_options.offenses %}
+                        <option value="{{ off }}" {% if filters.get('offense') == off %}selected{% endif %}>{{ off }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="severity">Severity</label>
+                <select name="severity" id="severity">
+                    <option value="">All Severities</option>
+                    {% for sev in filter_options.severities %}
+                        <option value="{{ sev }}" {% if filters.get('severity') == sev %}selected{% endif %}>{{ sev }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="service_area">Service Area</label>
+                <select name="service_area" id="service_area">
+                    <option value="">All Areas</option>
+                    {% for sa in filter_options.service_areas %}
+                        <option value="{{ sa }}" {% if filters.get('service_area') == sa %}selected{% endif %}>{{ sa }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="zip_code">Zip Code</label>
+                <select name="zip_code" id="zip_code">
+                    <option value="">All Zip Codes</option>
+                    {% for zc in filter_options.zip_codes %}
+                        <option value="{{ zc }}" {% if filters.get('zip_code') == zc %}selected{% endif %}>{{ zc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_from">Date From</label>
+                <input type="date" name="date_from" id="date_from" value="{{ filters.get('date_from', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_to">Date To</label>
+                <input type="date" name="date_to" id="date_to" value="{{ filters.get('date_to', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="search">Search</label>
+                <input type="text" name="search" id="search" placeholder="Search offenses..." value="{{ filters.get('search', '') }}">
+            </div>
+        </div>
+        
+        <div class="filter-buttons">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="/arrests" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </form>
+
+    <div class="arrests-table">
+        <div class="table-header">
+            <h2>Arrest Records</h2>
+            <span class="results-count">{{ "{:,}".format(total) }} total records</span>
+        </div>
+        
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Report ID</th>
+                    <th>Date</th>
+                    <th>Person ID</th>
+                    <th>Offense</th>
+                    <th>Severity</th>
+                    <th>Service Area</th>
+                    <th>Zip Code</th>
+                    <th>Month</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for arrest in arrests %}
+                <tr>
+                    <td>{{ arrest[0] }}</td>
+                    <td>{{ arrest[1] }}</td>
+                    <td>{{ arrest[2] }}</td>
+                    <td>{{ arrest[3] }}</td>
+                    <td>{{ arrest[4] }}</td>
+                    <td>{{ arrest[5] }}</td>
+                    <td>{{ arrest[6] }}</td>
+                    <td>{{ arrest[7] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="{{ url_for('arrests_list', page=1, days=days, **filters) }}">First</a>
+                <a href="{{ url_for('arrests_list', page=page-1, days=days, **filters) }}">Previous</a>
+            {% else %}
+                <span class="disabled">First</span>
+                <span class="disabled">Previous</span>
+            {% endif %}
+            
+            {% for p in page_range %}
+                {% if p == page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('arrests_list', page=p, days=days, **filters) }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page < total_pages %}
+                <a href="{{ url_for('arrests_list', page=page+1, days=days, **filters) }}">Next</a>
+                <a href="{{ url_for('arrests_list', page=total_pages, days=days, **filters) }}">Last</a>
+            {% else %}
+                <span class="disabled">Next</span>
+                <span class="disabled">Last</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

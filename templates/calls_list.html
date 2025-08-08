@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Calls for Service - SATX Data{% endblock %}
+
+{% block extra_head %}
+<style>
+    .filters-form {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .filters-form {
+            padding: 15px;
+        }
+        
+        .filters-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .filter-buttons {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            min-width: 700px;
+        }
+        
+        .pagination {
+            flex-wrap: wrap;
+            padding: 15px;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 6px 10px;
+            font-size: 0.9em;
+        }
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-group label {
+        font-size: 0.9em;
+        color: #555;
+        margin-bottom: 5px;
+    }
+    
+    .filter-group input,
+    .filter-group select {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 0.95em;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.95em;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #9b59b6;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #8e44ad;
+    }
+    
+    .btn-secondary {
+        background-color: #95a5a6;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+    
+    .calls-table {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table-header {
+        padding: 20px;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .table-header h2 {
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    .results-count {
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        padding: 20px;
+        justify-content: center;
+        background: #f8f9fa;
+    }
+    
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        text-decoration: none;
+        color: #9b59b6;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        transition: all 0.3s;
+    }
+    
+    .pagination a:hover {
+        background-color: #9b59b6;
+        color: white;
+    }
+    
+    .pagination .current {
+        background-color: #9b59b6;
+        color: white;
+        border-color: #9b59b6;
+    }
+    
+    .pagination .disabled {
+        color: #95a5a6;
+        cursor: not-allowed;
+    }
+    
+    .priority-1 { color: #e74c3c; font-weight: bold; }
+    .priority-2 { color: #e67e22; font-weight: bold; }
+    .priority-3 { color: #f39c12; }
+    .priority-4 { color: #27ae60; }
+    .priority-5 { color: #3498db; }
+    
+    .call-emergency { 
+        background-color: #ffe5e5; 
+        font-weight: bold;
+        color: #c0392b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <h1>Calls for Service Records</h1>
+        <p class="subtitle">Browse and filter SAPD call records</p>
+    </header>
+
+    <form method="get" action="/calls" class="filters-form">
+        <h3>Filters</h3>
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="days">Time Range</label>
+                <select name="days" id="days" onchange="this.form.submit()">
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                    <option value="60" {% if days == 60 %}selected{% endif %}>Last 60 Days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="problem">Problem Type</label>
+                <select name="problem" id="problem">
+                    <option value="">All Problems</option>
+                    {% for prob in filter_options.problems %}
+                        <option value="{{ prob }}" {% if filters.get('problem') == prob %}selected{% endif %}>{{ prob }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="priority">Priority</label>
+                <select name="priority" id="priority">
+                    <option value="">All Priorities</option>
+                    {% for pri in filter_options.priorities %}
+                        <option value="{{ pri }}" {% if filters.get('priority') == pri %}selected{% endif %}>Priority {{ pri }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="call_type">Call Type</label>
+                <select name="call_type" id="call_type">
+                    <option value="">All Types</option>
+                    {% for ct in filter_options.call_types %}
+                        <option value="{{ ct }}" {% if filters.get('call_type') == ct %}selected{% endif %}>{{ ct }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="service_area">Service Area</label>
+                <select name="service_area" id="service_area">
+                    <option value="">All Areas</option>
+                    {% for sa in filter_options.service_areas %}
+                        <option value="{{ sa }}" {% if filters.get('service_area') == sa %}selected{% endif %}>{{ sa }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="postal_code">Zip Code</label>
+                <select name="postal_code" id="postal_code">
+                    <option value="">All Zip Codes</option>
+                    {% for pc in filter_options.postal_codes %}
+                        <option value="{{ pc }}" {% if filters.get('postal_code') == pc %}selected{% endif %}>{{ pc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_from">Date From</label>
+                <input type="date" name="date_from" id="date_from" value="{{ filters.get('date_from', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="date_to">Date To</label>
+                <input type="date" name="date_to" id="date_to" value="{{ filters.get('date_to', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="search">Search</label>
+                <input type="text" name="search" id="search" placeholder="Search problems..." value="{{ filters.get('search', '') }}">
+            </div>
+        </div>
+        
+        <div class="filter-buttons">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="/calls" class="btn btn-secondary">Clear Filters</a>
+        </div>
+    </form>
+
+    <div class="calls-table">
+        <div class="table-header">
+            <h2>Call Records</h2>
+            <span class="results-count">{{ "{:,}".format(total) }} total records</span>
+        </div>
+        
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Incident #</th>
+                    <th>Date/Time</th>
+                    <th>Priority</th>
+                    <th>Problem</th>
+                    <th>Type</th>
+                    <th>Service Area</th>
+                    <th>Zip</th>
+                    <th>Disposition</th>
+                    <th>Response Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for call in calls %}
+                <tr class="{% if call[4] == 'Emergency' %}call-emergency{% endif %}">
+                    <td>{{ call[0] }}</td>
+                    <td>{{ call[1] }}</td>
+                    <td class="priority-{{ call[2] }}">{{ call[2] }}</td>
+                    <td>{{ call[3] }}</td>
+                    <td>{{ call[4] }}</td>
+                    <td>{{ call[5] }}</td>
+                    <td>{{ call[6] }}</td>
+                    <td>{{ call[7] if call[7] else '-' }}</td>
+                    <td>
+                        {% if call[8] %}
+                            {{ (call[8] / 60)|round(1) }} min
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="{{ url_for('calls_list', page=1, days=days, **filters) }}">First</a>
+                <a href="{{ url_for('calls_list', page=page-1, days=days, **filters) }}">Previous</a>
+            {% else %}
+                <span class="disabled">First</span>
+                <span class="disabled">Previous</span>
+            {% endif %}
+            
+            {% for p in page_range %}
+                {% if p == page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('calls_list', page=p, days=days, **filters) }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page < total_pages %}
+                <a href="{{ url_for('calls_list', page=page+1, days=days, **filters) }}">Next</a>
+                <a href="{{ url_for('calls_list', page=total_pages, days=days, **filters) }}">Last</a>
+            {% else %}
+                <span class="disabled">Next</span>
+                <span class="disabled">Last</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

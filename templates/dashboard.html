@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Crime Dashboard - SATX Data{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+        <header>
+            <h1>San Antonio Crime Dashboard</h1>
+            <p class="subtitle">Last 30 Days Crime Statistics</p>
+            <div class="last-update">
+                {% if last_fetch and last_fetch.fetch_date_formatted %}
+                    Last updated: {{ last_fetch.fetch_date_formatted }}
+                {% else %}
+                    No data available
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card total-crimes">
+                <h3>Total Crimes</h3>
+                <div class="stat-number">{{ "{:,}".format(stats.total_crimes) }}</div>
+                <p class="stat-label">in the last 30 days</p>
+            </div>
+
+            <div class="stat-card violent-crimes">
+                <h3>Violent Crimes</h3>
+                <div class="stat-number">{{ "{:,}".format(stats.violent_crimes) }}</div>
+                <p class="stat-label">{{ "%.1f"|format(violent_percentage) }}% of total</p>
+            </div>
+
+            <div class="stat-card daily-average">
+                <h3>Daily Average</h3>
+                <div class="stat-number">{{ "{:,}".format((stats.total_crimes / 30)|int) }}</div>
+                <p class="stat-label">crimes per day</p>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3>Top 10 Crime Types</h3>
+                <canvas id="crimeTypesChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Crime Categories</h3>
+                <canvas id="crimeCategoriesChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Crimes by Service Area</h3>
+                <canvas id="serviceAreaChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Daily Crime Trend</h3>
+                <canvas id="dailyTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="tables-grid">
+            <div class="table-container">
+                <h3>Top 10 Crime Types</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Crime Type</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for crime_type, count in stats.crimes_by_type %}
+                        <tr>
+                            <td>{{ crime_type }}</td>
+                            <td>{{ "{:,}".format(count) }}</td>
+                            <td>{{ "%.1f"|format((count / stats.total_crimes * 100) if stats.total_crimes > 0 else 0) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-container">
+                <h3>Top 10 Zip Codes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zip Code</th>
+                            <th>Crime Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zip_code, count in stats.top_zip_codes %}
+                        <tr>
+                            <td>{{ zip_code }}</td>
+                            <td>{{ "{:,}".format(count) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Crime Types Chart
+        const crimeTypesCtx = document.getElementById('crimeTypesChart').getContext('2d');
+        new Chart(crimeTypesCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ crime_type_labels | tojson }},
+                datasets: [{
+                    label: 'Number of Crimes',
+                    data: {{ crime_type_data | tojson }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+
+        // Crime Categories Chart
+        const categoriesCtx = document.getElementById('crimeCategoriesChart').getContext('2d');
+        new Chart(categoriesCtx, {
+            type: 'pie',
+            data: {
+                labels: {{ category_labels | tojson }},
+                datasets: [{
+                    data: {{ category_data | tojson }},
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Service Area Chart
+        const serviceAreaCtx = document.getElementById('serviceAreaChart').getContext('2d');
+        new Chart(serviceAreaCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ area_labels | tojson }},
+                datasets: [{
+                    label: 'Number of Crimes',
+                    data: {{ area_data | tojson }},
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Daily Trend Chart
+        const dailyTrendCtx = document.getElementById('dailyTrendChart').getContext('2d');
+        new Chart(dailyTrendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels | tojson }},
+                datasets: [{
+                    label: 'Daily Crime Count',
+                    data: {{ trend_data | tojson }},
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</div>
+{% endblock %}

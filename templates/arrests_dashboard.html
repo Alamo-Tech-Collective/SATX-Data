@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Arrests Dashboard - SATX Data{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <header>
+        <h1>San Antonio Arrests Dashboard</h1>
+        <p class="subtitle">Last 30 Days Arrest Statistics</p>
+        <div class="last-update">
+            {% if last_fetch and last_fetch.fetch_date_formatted %}
+                Last updated: {{ last_fetch.fetch_date_formatted }}
+            {% else %}
+                No data available
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="stats-grid">
+        <div class="stat-card total-crimes">
+            <h3>Total Arrests</h3>
+            <div class="stat-number">{{ "{:,}".format(stats.total_arrests) }}</div>
+            <p class="stat-label">in the last 30 days</p>
+        </div>
+
+        <div class="stat-card violent-crimes">
+            <h3>Felony Arrests</h3>
+            <div class="stat-number">{{ "{:,}".format(stats.felony_arrests) }}</div>
+            <p class="stat-label">{{ "%.1f"|format(felony_percentage) }}% of total</p>
+        </div>
+
+        <div class="stat-card daily-average">
+            <h3>Daily Average</h3>
+            <div class="stat-number">{{ "{:,}".format((stats.total_arrests / 30)|int) }}</div>
+            <p class="stat-label">arrests per day</p>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-container">
+            <h3>Top 10 Offense Types</h3>
+            <canvas id="offenseTypesChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>Arrests by Severity</h3>
+            <canvas id="severityChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>Arrests by Service Area</h3>
+            <canvas id="serviceAreaChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h3>Daily Arrest Trend</h3>
+            <canvas id="dailyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="tables-grid">
+        <div class="table-container">
+            <h3>Top 10 Offense Types</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Offense</th>
+                        <th>Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for offense, count in stats.arrests_by_offense[:10] %}
+                    <tr>
+                        <td>{{ offense }}</td>
+                        <td>{{ "{:,}".format(count) }}</td>
+                        <td>{{ "%.1f"|format((count / stats.total_arrests * 100) if stats.total_arrests > 0 else 0) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <h3>Top 10 Zip Codes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Zip Code</th>
+                        <th>Arrest Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zip_code, count in stats.top_zip_codes %}
+                    <tr>
+                        <td>{{ zip_code }}</td>
+                        <td>{{ "{:,}".format(count) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Offense Types Chart
+        const offenseTypesCtx = document.getElementById('offenseTypesChart').getContext('2d');
+        new Chart(offenseTypesCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ offense_labels | tojson }},
+                datasets: [{
+                    label: 'Number of Arrests',
+                    data: {{ offense_data | tojson }},
+                    backgroundColor: 'rgba(231, 76, 60, 0.6)',
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+
+        // Severity Chart
+        const severityCtx = document.getElementById('severityChart').getContext('2d');
+        new Chart(severityCtx, {
+            type: 'pie',
+            data: {
+                labels: {{ severity_labels | tojson }},
+                datasets: [{
+                    data: {{ severity_data | tojson }},
+                    backgroundColor: [
+                        'rgba(192, 57, 43, 0.6)',
+                        'rgba(231, 76, 60, 0.6)',
+                        'rgba(230, 126, 34, 0.6)',
+                        'rgba(241, 196, 15, 0.6)',
+                        'rgba(155, 89, 182, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(192, 57, 43, 1)',
+                        'rgba(231, 76, 60, 1)',
+                        'rgba(230, 126, 34, 1)',
+                        'rgba(241, 196, 15, 1)',
+                        'rgba(155, 89, 182, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Service Area Chart
+        const serviceAreaCtx = document.getElementById('serviceAreaChart').getContext('2d');
+        new Chart(serviceAreaCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ area_labels | tojson }},
+                datasets: [{
+                    label: 'Number of Arrests',
+                    data: {{ area_data | tojson }},
+                    backgroundColor: 'rgba(230, 126, 34, 0.6)',
+                    borderColor: 'rgba(230, 126, 34, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Daily Trend Chart
+        const dailyTrendCtx = document.getElementById('dailyTrendChart').getContext('2d');
+        new Chart(dailyTrendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels | tojson }},
+                datasets: [{
+                    label: 'Daily Arrest Count',
+                    data: {{ trend_data | tojson }},
+                    borderColor: 'rgba(192, 57, 43, 1)',
+                    backgroundColor: 'rgba(192, 57, 43, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</div>
+{% endblock %}

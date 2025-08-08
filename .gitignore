@@ -1,0 +1,70 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Database (fetch fresh data with --refresh)
+*.db
+*.sqlite
+*.sqlite3
+
+# Flask
+instance/
+.webassets-cache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Security - NEVER COMMIT THESE
+api_keys.txt
+.env
+*.key
+*.pem
+*.cert
+
+# Local configuration
+.env.local
+.env.*.local
+
+# Testing
+htmlcov/
+.coverage
+.pytest_cache/
+.hypothesis/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# System files
+desktop.ini

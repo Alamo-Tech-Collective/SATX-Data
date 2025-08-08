@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SATX Data{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .navbar {
+            background-color: #2c3e50;
+            padding: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+        }
+        
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            min-height: 60px;
+        }
+        
+        .navbar-brand {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            padding: 15px 0;
+        }
+        
+        .navbar-brand:hover {
+            color: #3498db;
+        }
+        
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 12px;
+            background: none;
+            border: none;
+            z-index: 1002;
+            position: relative;
+            min-width: 44px;
+            min-height: 44px;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: white;
+            margin: 3px 0;
+            transition: 0.3s;
+            border-radius: 3px;
+        }
+        
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(-45deg) translate(-5px, 6px);
+        }
+        
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(45deg) translate(-5px, -6px);
+        }
+        
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0;
+        }
+        
+        .nav-item {
+            position: relative;
+        }
+        
+        .nav-link {
+            display: block;
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 20px 20px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            background-color: #34495e;
+            color: #3498db;
+        }
+        
+        .nav-link.active {
+            background-color: #34495e;
+            color: #3498db;
+        }
+        
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #34495e;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-item {
+            display: block;
+            padding: 12px 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #2c3e50;
+            color: #3498db;
+        }
+        
+        .nav-divider {
+            height: 1px;
+            background-color: #7f8c8d;
+            margin: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        
+        .main-content {
+            min-height: calc(100vh - 60px);
+        }
+        
+        /* Animation state classes */
+        .navbar-nav.animating {
+            pointer-events: none;
+        }
+        
+        .dropdown.animating {
+            pointer-events: none;
+        }
+        
+        /* Enhanced mobile touch targets */
+        @media (max-width: 768px) {
+            .nav-link, .dropdown-item {
+                -webkit-tap-highlight-color: rgba(52, 152, 219, 0.2);
+                tap-highlight-color: rgba(52, 152, 219, 0.2);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                width: 100%;
+                left: 0;
+                right: 0;
+            }
+            
+            .navbar-container {
+                position: relative;
+                width: 100%;
+                max-width: 100%;
+                padding: 0 15px;
+            }
+            
+            .navbar-brand {
+                font-size: 1.3em;
+            }
+            
+            .hamburger {
+                display: flex;
+            }
+            
+            .navbar-nav {
+                position: fixed;
+                left: -100%;
+                top: 60px;
+                flex-direction: column;
+                background-color: #2c3e50;
+                width: 100%;
+                text-align: center;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 10px 27px rgba(0,0,0,0.05);
+                max-height: calc(100vh - 60px);
+                overflow-y: auto;
+                z-index: 1001;
+                will-change: transform;
+                backface-visibility: hidden;
+            }
+            
+            .navbar-nav.active {
+                left: 0;
+            }
+            
+            .nav-link {
+                padding: 15px 20px;
+                border-bottom: 1px solid #34495e;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .dropdown-menu {
+                position: static;
+                box-shadow: none;
+                background-color: #3d5570;
+                display: none;
+                width: 100%;
+                max-height: 0;
+                overflow: hidden;
+                transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .dropdown:hover .dropdown-menu {
+                display: none;
+            }
+            
+            .dropdown.active .dropdown-menu {
+                display: block;
+                max-height: 200px;
+            }
+            
+            .dropdown-item {
+                padding: 12px 30px;
+                text-align: left;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">SATX Data</a>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="navbar-nav" id="navbarNav">
+                <li class="nav-item">
+                    <a href="/" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Insights</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['dashboard', 'crimes_list'] %}active{% endif %}">
+                        Crime Data ▼
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/crime-dashboard" class="dropdown-item">Dashboard</a>
+                        <a href="/crimes" class="dropdown-item">Browse Crimes</a>
+                    </div>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['arrests_dashboard', 'arrests_list'] %}active{% endif %}">
+                        Arrests Data ▼
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/arrests-dashboard" class="dropdown-item">Dashboard</a>
+                        <a href="/arrests" class="dropdown-item">Browse Arrests</a>
+                    </div>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['calls_dashboard', 'calls_list'] %}active{% endif %}">
+                        Calls for Service ▼
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="/calls-dashboard" class="dropdown-item">Dashboard</a>
+                        <a href="/calls" class="dropdown-item">Browse Calls</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">Coming Soon</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script>
+        (function() {
+            'use strict';
+            
+            // Navigation state management
+            let isMenuAnimating = false;
+            let isDropdownAnimating = false;
+            const ANIMATION_DURATION = 300;
+            
+            // DOM elements
+            const hamburger = document.getElementById('hamburger');
+            const navbarNav = document.getElementById('navbarNav');
+            const dropdowns = document.querySelectorAll('.dropdown');
+            
+            // Utility function to check if we're on mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // Utility function to wait for animation completion
+            function waitForAnimation(duration = ANIMATION_DURATION) {
+                return new Promise(resolve => setTimeout(resolve, duration));
+            }
+            
+            // Hamburger menu toggle with animation protection
+            async function toggleMobileMenu() {
+                if (isMenuAnimating || !isMobile()) return;
+                
+                isMenuAnimating = true;
+                navbarNav.classList.add('animating');
+                
+                const isActive = hamburger.classList.contains('active');
+                
+                if (isActive) {
+                    // Closing menu
+                    hamburger.classList.remove('active');
+                    navbarNav.classList.remove('active');
+                    closeAllDropdowns();
+                } else {
+                    // Opening menu
+                    hamburger.classList.add('active');
+                    navbarNav.classList.add('active');
+                }
+                
+                await waitForAnimation();
+                navbarNav.classList.remove('animating');
+                isMenuAnimating = false;
+            }
+            
+            // Close all dropdowns
+            function closeAllDropdowns() {
+                dropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('active');
+                });
+            }
+            
+            // Toggle specific dropdown with animation protection
+            async function toggleDropdown(targetDropdown) {
+                if (isDropdownAnimating || !isMobile()) return;
+                
+                isDropdownAnimating = true;
+                targetDropdown.classList.add('animating');
+                
+                const wasActive = targetDropdown.classList.contains('active');
+                
+                // Close all other dropdowns first
+                dropdowns.forEach(dropdown => {
+                    if (dropdown !== targetDropdown) {
+                        dropdown.classList.remove('active');
+                        dropdown.classList.remove('animating');
+                    }
+                });
+                
+                // Toggle target dropdown
+                if (wasActive) {
+                    targetDropdown.classList.remove('active');
+                } else {
+                    targetDropdown.classList.add('active');
+                }
+                
+                await waitForAnimation();
+                targetDropdown.classList.remove('animating');
+                isDropdownAnimating = false;
+            }
+            
+            // Enhanced event handlers
+            hamburger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMobileMenu();
+            });
+            
+            // Handle dropdown toggles on mobile
+            dropdowns.forEach(dropdown => {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                
+                if (toggle) {
+                    toggle.addEventListener('click', function(e) {
+                        if (isMobile()) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleDropdown(dropdown);
+                        }
+                    });
+                }
+            });
+            
+            // Close menu when clicking outside (with improved detection)
+            document.addEventListener('click', function(e) {
+                if (!isMobile()) return;
+                
+                const clickedInsideNavbar = e.target.closest('.navbar');
+                const clickedOnHamburger = e.target.closest('#hamburger');
+                
+                if (!clickedInsideNavbar && !clickedOnHamburger && !isMenuAnimating) {
+                    hamburger.classList.remove('active');
+                    navbarNav.classList.remove('active');
+                    closeAllDropdowns();
+                }
+            });
+            
+            // Handle escape key to close menu
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isMobile() && hamburger.classList.contains('active')) {
+                    e.preventDefault();
+                    toggleMobileMenu();
+                }
+            });
+            
+            // Reset menu state on window resize with debouncing
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    if (!isMobile()) {
+                        // Reset all mobile menu states when switching to desktop
+                        hamburger.classList.remove('active');
+                        navbarNav.classList.remove('active');
+                        closeAllDropdowns();
+                        isMenuAnimating = false;
+                        isDropdownAnimating = false;
+                    }
+                }, 100);
+            });
+            
+            // Prevent menu interactions during page load
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(() => {
+                    isMenuAnimating = false;
+                    isDropdownAnimating = false;
+                }, 100);
+            });
+            
+            // Handle focus management for better accessibility
+            hamburger.addEventListener('focus', function() {
+                if (isMobile()) {
+                    hamburger.style.outline = '2px solid #3498db';
+                }
+            });
+            
+            hamburger.addEventListener('blur', function() {
+                hamburger.style.outline = '';
+            });
+            
+            // Add transition end listeners for more precise animation tracking
+            navbarNav.addEventListener('transitionend', function(e) {
+                if (e.propertyName === 'left') {
+                    navbarNav.classList.remove('animating');
+                    isMenuAnimating = false;
+                }
+            });
+            
+            // Handle dropdown transition ends
+            dropdowns.forEach(dropdown => {
+                const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+                if (dropdownMenu) {
+                    dropdownMenu.addEventListener('transitionend', function(e) {
+                        if (e.propertyName === 'max-height') {
+                            dropdown.classList.remove('animating');
+                            isDropdownAnimating = false;
+                        }
+                    });
+                }
+            });
+            
+            // Ensure menu is properly positioned on orientation change
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    if (isMobile() && hamburger.classList.contains('active')) {
+                        // Force a reflow to fix any positioning issues
+                        navbarNav.style.display = 'none';
+                        navbarNav.offsetHeight; // Trigger reflow
+                        navbarNav.style.display = '';
+                    }
+                }, 100);
+            });
+            
+        })();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

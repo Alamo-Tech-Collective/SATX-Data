@@ -1,8 +1,7 @@
 import sqlite3
 from datetime import datetime
 import os
-
-DB_PATH = 'crime_data.db'
+from config import DB_PATH
 
 def init_arrests_table():
     conn = sqlite3.connect(DB_PATH)

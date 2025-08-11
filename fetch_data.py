@@ -31,15 +31,18 @@ def fetch_crime_data_page(offset=0, date_filter=None):
         print(f"Error fetching data: {e}")
         return None
 
-def fetch_all_crime_data(days=30):
-    print(f"Starting to fetch crime data for the last {days} days...")
+def fetch_all_crime_data(days=30, fetch_all=False):
+    if fetch_all:
+        print("Starting to fetch ALL crime data...")
+    else:
+        print(f"Starting to fetch crime data for the last {days} days...")
     
     # Get the most recent data available (the API seems to have data up to June 30, 2025)
     # We'll fetch the most recent 30 days of available data
     all_records = []
     offset = 0
     total_records = None
-    records_needed = days * 400  # Estimate ~400 crimes per day
+    records_needed = days * 400 if not fetch_all else float('inf')  # No limit when fetching all
     
     while len(all_records) < records_needed:
         print(f"Fetching records from offset {offset}...")
@@ -58,8 +61,8 @@ def fetch_all_crime_data(days=30):
         # Just add all records - we'll get the most recent 30 days worth
         all_records.extend(records)
         
-        # Check if we have enough days of data
-        if all_records:
+        # Check if we have enough days of data (only when not fetching all)
+        if not fetch_all and all_records:
             dates = sorted(set(r['Report_Date'] for r in all_records if 'Report_Date' in r), reverse=True)
             if len(dates) >= days:
                 print(f"Fetched {days} days of data, stopping")
@@ -94,7 +97,7 @@ def fetch_all_crime_data(days=30):
     
     return all_records, start_date, end_date
 
-def refresh_crime_data(days=30):
+def refresh_crime_data(days=30, fetch_all=False):
     current_time = datetime.now(CST).strftime('%B %d, %Y at %I:%M %p CST')
     print(f"Refreshing crime data - {current_time}")
     
@@ -102,7 +105,7 @@ def refresh_crime_data(days=30):
     init_database()
     
     # Fetch data
-    records, start_date, end_date = fetch_all_crime_data(days)
+    records, start_date, end_date = fetch_all_crime_data(days, fetch_all)
     
     if records:
         # Insert into database

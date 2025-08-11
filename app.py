@@ -8,6 +8,28 @@ from fetch_data import refresh_crime_data
 from fetch_arrests import refresh_arrests_data
 from fetch_calls import refresh_calls_data
 from scheduler import start_scheduler_thread, scheduled_refresh
+
+def manual_full_refresh():
+    """
+    Fetches ALL available data from all three sources.
+    Used when --refresh flag is provided to populate the entire database.
+    """
+    try:
+        # Fetch ALL crime data
+        refresh_crime_data(fetch_all=True)
+        print("All crime data fetched successfully")
+        
+        # Fetch ALL arrests data
+        refresh_arrests_data(fetch_all=True)
+        print("All arrests data fetched successfully")
+        
+        # Fetch ALL calls for service data
+        refresh_calls_data(fetch_all=True)
+        print("All calls for service data fetched successfully")
+        
+        print("\nAll historical data has been fetched successfully!")
+    except Exception as e:
+        print(f"Error during full data refresh: {e}")
 from security import require_api_key, rate_limit, ip_restrict, secure_headers, api_key_manager, get_client_ip
 from datetime import datetime
 import pytz
@@ -598,10 +620,10 @@ if __name__ == '__main__':
     
     if force_refresh:
         print("\n========================================")
-        print("MANUAL REFRESH TRIGGERED")
+        print("MANUAL REFRESH TRIGGERED - FETCHING ALL DATA")
         print("========================================")
-        # Use the exact same function as the scheduled refresh
-        scheduled_refresh()
+        # Fetch ALL available data when manually refreshing
+        manual_full_refresh()
         print("========================================\n")
     else:
         # Check if database is empty and inform user

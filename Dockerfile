@@ -23,6 +23,7 @@ RUN mkdir -p /app/data
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=app.py
+ENV DOCKER_CONTAINER=1
 
 # Expose port
 EXPOSE 5001

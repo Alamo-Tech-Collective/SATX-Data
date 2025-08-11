@@ -28,14 +28,17 @@ def fetch_calls_data_page(offset=0):
         print(f"Error fetching calls data: {e}")
         return None
 
-def fetch_all_calls_data(days=30):
-    print(f"Starting to fetch calls for service data for the last {days} days...")
+def fetch_all_calls_data(days=30, fetch_all=False):
+    if fetch_all:
+        print("Starting to fetch ALL calls for service data...")
+    else:
+        print(f"Starting to fetch calls for service data for the last {days} days...")
     
     # Get the most recent data available
     all_records = []
     offset = 0
     total_records = None
-    records_needed = days * 500  # Estimate ~500 calls per day
+    records_needed = days * 500 if not fetch_all else float('inf')  # No limit when fetching all
     
     while len(all_records) < records_needed:
         print(f"Fetching calls records from offset {offset}...")
@@ -54,8 +57,8 @@ def fetch_all_calls_data(days=30):
         # Just add all records - we'll get the most recent 30 days worth
         all_records.extend(records)
         
-        # Check if we have enough days of data
-        if all_records:
+        # Check if we have enough days of data (only when not fetching all)
+        if not fetch_all and all_records:
             # Extract dates from response_date timestamps
             dates = []
             for r in all_records:
@@ -112,7 +115,7 @@ def fetch_all_calls_data(days=30):
     
     return all_records, start_date, end_date
 
-def refresh_calls_data(days=30):
+def refresh_calls_data(days=30, fetch_all=False):
     current_time = datetime.now(CST).strftime('%B %d, %Y at %I:%M %p CST')
     print(f"Refreshing calls for service data - {current_time}")
     
@@ -120,7 +123,7 @@ def refresh_calls_data(days=30):
     init_calls_table()
     
     # Fetch data
-    records, start_date, end_date = fetch_all_calls_data(days)
+    records, start_date, end_date = fetch_all_calls_data(days, fetch_all)
     
     if records:
         # Insert into database

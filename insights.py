@@ -2,8 +2,7 @@ import sqlite3
 from datetime import datetime, timedelta
 import pytz
 from us_crime_severity_weights import get_us_weighted_severity
-
-DB_PATH = 'crime_data.db'
+from config import DB_PATH
 CST = pytz.timezone('America/Chicago')
 
 def get_multi_period_insights():

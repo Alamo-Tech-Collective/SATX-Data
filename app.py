@@ -643,5 +643,15 @@ if __name__ == '__main__':
     # Start the scheduler for daily updates
     start_scheduler_thread()
     
-    # Run the app
-    app.run(debug=True, port=5001, host='0.0.0.0')
+    # Determine if we're in production based on environment
+    is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('DOCKER_CONTAINER')
+    
+    # Run the app with appropriate settings
+    if is_production:
+        print("Running in production mode")
+        # In production, we'll use Gunicorn, so this won't typically run
+        # But if it does, ensure debug is off
+        app.run(debug=False, port=5001, host='0.0.0.0')
+    else:
+        print("Running in development mode")
+        app.run(debug=True, port=5001, host='0.0.0.0')

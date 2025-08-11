@@ -24,9 +24,12 @@ RUN mkdir -p /app/data
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=app.py
 ENV DOCKER_CONTAINER=1
+ENV FLASK_ENV=production
 
 # Expose port
 EXPOSE 5001
 
-# Run the application
-CMD ["python", "app.py"]
+# Run the application with Gunicorn in production
+# 4 workers is a good default (2 * CPU cores + 1)
+# Timeout set to 120s for data fetching operations
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

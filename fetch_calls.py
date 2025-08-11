@@ -30,7 +30,9 @@ def fetch_calls_data_page(offset=0):
 
 def fetch_all_calls_data(days=30, fetch_all=False):
     if fetch_all:
-        print("Starting to fetch ALL calls for service data...")
+        # When using --refresh, limit to 180 days max
+        days = 180
+        print(f"Starting to fetch calls for service data for the last {days} days (--refresh limit)...")
     else:
         print(f"Starting to fetch calls for service data for the last {days} days...")
     
@@ -38,7 +40,7 @@ def fetch_all_calls_data(days=30, fetch_all=False):
     all_records = []
     offset = 0
     total_records = None
-    records_needed = days * 500 if not fetch_all else float('inf')  # No limit when fetching all
+    records_needed = days * 500  # Always use days limit now
     
     while len(all_records) < records_needed:
         print(f"Fetching calls records from offset {offset}...")
@@ -57,8 +59,8 @@ def fetch_all_calls_data(days=30, fetch_all=False):
         # Just add all records - we'll get the most recent 30 days worth
         all_records.extend(records)
         
-        # Check if we have enough days of data (only when not fetching all)
-        if not fetch_all and all_records:
+        # Check if we have enough days of data
+        if all_records:
             # Extract dates from response_date timestamps
             dates = []
             for r in all_records:

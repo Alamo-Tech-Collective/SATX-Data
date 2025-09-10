@@ -198,6 +198,28 @@ def get_crime_stats(days=30):
             LIMIT 10
         ''')
     stats['top_zip_codes'] = cursor.fetchall()
+
+    # All zip code counts
+    if max_date_result and max_date_result[0]:
+        cursor.execute('''
+            SELECT zip_code, COUNT(*) as count 
+            FROM crimes 
+            WHERE report_date >= date(?, '-' || ? || ' days')
+            AND zip_code NOT LIKE '%Out of%' 
+            AND zip_code != 'Unknown'
+            GROUP BY zip_code 
+            ORDER BY count DESC
+        ''', (max_date_result[0], days - 1))
+    else:
+        cursor.execute('''
+            SELECT zip_code, COUNT(*) as count 
+            FROM crimes 
+            WHERE zip_code NOT LIKE '%Out of%' 
+            AND zip_code != 'Unknown'
+            GROUP BY zip_code 
+            ORDER BY count DESC 
+        ''')
+    stats['crime_count_zip_codes'] = cursor.fetchall()
     
     # Daily trend
     if max_date_result and max_date_result[0]:

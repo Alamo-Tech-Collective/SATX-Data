@@ -1,5 +1,7 @@
 from flask import Flask, render_template, jsonify, request, redirect
 from flask_cors import CORS
+import folium
+import branca
 from database import init_database, get_crime_stats, get_last_fetch_info, get_crimes_list, get_filter_options
 from arrests_database import get_arrest_stats, get_arrests_list, get_arrest_filter_options
 from calls_database import get_calls_stats, get_calls_list, get_calls_filter_options
@@ -157,21 +159,101 @@ def dashboard():
             fetch_dt = pytz.utc.localize(fetch_dt)
         cst_time = fetch_dt.astimezone(CST)
         last_fetch['fetch_date_formatted'] = cst_time.strftime('%B %d, %Y at %I:%M %p CST')
-    
+
+    # Load GeoJSON file
+    with open('static/texas_zip_codes.geojson') as f:
+        geojson_data = json.load(f)
+
+    # Convert stats to a dictionary for faster lookup
+    zip_count_dict = dict(stats['crime_count_zip_codes'])
+
+    # Create a new GeoJSON structure
+    filtered_geojson = {
+        "type": "FeatureCollection",
+        "features": []
+    }
+
+    # Iterate over all features and filter based on zip codes in stats
+    for feature in geojson_data['features']:
+        zip_code = feature['properties']['ZCTA5CE10']
+        if zip_code in zip_count_dict:
+            # Add the count to the properties
+            feature['properties']['count'] = zip_count_dict[zip_code]
+            # Add feature to the new GeoJSON
+            filtered_geojson['features'].append(feature)
+
+    # Optional: print or save the new geojson
+    # print(json.dumps(filtered_geojson, indent=2))
+
+    # create a folium map centered on San Antonio
+    # First, extract counts from filtered_geojson
+    counts = [feature['properties']['count'] for feature in filtered_geojson['features']]
+    min_count = min(counts)
+    max_count = max(counts)
+
+    # Create color scale: green (low) -> red (high)
+    colormap = branca.colormap.LinearColormap(
+        colors=['green', 'yellow', 'red'],
+        vmin=min_count,
+        vmax=max_count,
+        caption='Crime Count by Zip Code'
+    )
+
+    # Create Folium map
+    m = folium.Map(
+        tiles='https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
+        location=[29.4241, -98.4936],
+        zoom_start=10,
+        scrollWheelZoom=False,
+        dragging=False,
+        min_zoom=10,
+        max_zoom=10
+    )
+
+    # Add GeoJson with dynamic style function
+    folium.GeoJson(
+        filtered_geojson,
+        name="zip-codes",
+        tooltip=folium.features.GeoJsonTooltip(
+            fields=['ZCTA5CE10', 'count'],
+            aliases=["Zip Code:", "Crimes:"],
+            localize=True,
+        ),
+        style_function=lambda feature: {
+            'fillColor': colormap(feature['properties']['count']),
+            'color': 'black',
+            'weight': 0.5,
+            'fillOpacity': 0.6
+        }
+    ).add_to(m)
+
+    # Add color legend to the map
+    colormap.add_to(m)
+    # object to return
+    map_html = m._repr_html_()
+    header = m.get_root().header.render()
+    body_html = m.get_root().html.render()
+    script = m.get_root().script.render()
+
     return render_template('dashboard.html',
-                         stats=stats,
-                         last_fetch=last_fetch,
-                         category_percentages=category_percentages,
-                         violent_percentage=violent_percentage,
-                         current_date=datetime.now(CST).strftime('%B %d, %Y'),
-                         crime_type_labels=crime_type_labels,
-                         crime_type_data=crime_type_data,
-                         category_labels=category_labels,
-                         category_data=category_data,
-                         area_labels=area_labels,
-                         area_data=area_data,
-                         trend_labels=trend_labels,
-                         trend_data=trend_data)
+                           header=header,
+                           body_html=body_html,
+                           script=script,
+                           map_html=map_html,
+                           stats=stats,
+                           last_fetch=last_fetch,
+                           category_percentages=category_percentages,
+                           violent_percentage=violent_percentage,
+                           current_date=datetime.now(CST).strftime('%B %d, %Y'),
+                           crime_type_labels=crime_type_labels,
+                           crime_type_data=crime_type_data,
+                           category_labels=category_labels,
+                           category_data=category_data,
+                           area_labels=area_labels,
+                           area_data=area_data,
+                           trend_labels=trend_labels,
+                           trend_data=trend_data)
 
 @app.route('/api/stats')
 @require_api_key

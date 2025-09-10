@@ -231,10 +231,13 @@ def secure_headers(response):
     # Allow Chart.js CDN, inline styles for charts, and inline scripts for dashboard
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
-        "connect-src 'self'"
+        "connect-src 'self'; "
+        "child-src 'none'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'"
     )
     return response
